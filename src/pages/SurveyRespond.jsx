@@ -335,7 +335,7 @@ export default function SurveyRespond() {
           <h1
             style={{
               fontFamily: "Playfair Display,serif",
-              marginTop:-20,
+              marginTop: -20,
               fontWeight: 900,
               fontSize: "clamp(42px,5vw,64px)",
               lineHeight: 0.92,
@@ -598,10 +598,12 @@ export default function SurveyRespond() {
           <button
             onClick={async () => {
               try {
-                await API.post(
-                  `/surveys/${sv.id}/demographics`,
-                  demographics
-                );
+                await API.patch(`/responses/${rId.current}`, {
+                  age_range: demographics.age_range,
+                  gender: demographics.gender,
+                  city: demographics.city,
+                  occupation: demographics.occupation
+                });
               } catch (e) {
                 console.log(e);
               }
