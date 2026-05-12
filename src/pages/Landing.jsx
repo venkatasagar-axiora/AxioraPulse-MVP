@@ -557,6 +557,11 @@ export default function Landing() {
   const [selectedBookingDate, setSelectedBookingDate] = useState("");
   const [showGuests, setShowGuests] = useState(false);
   const [guestEmail, setGuestEmail] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [bookedSlots, setBookedSlots] = useState([]);
 
   // Inject CSS once
   useEffect(() => {
@@ -1482,30 +1487,14 @@ export default function Landing() {
                                     slotDateTime30.setHours(hour, 30, 0, 0);
 
                                     /* BLOCK ONLY COMPLETED SLOT */
+                                    /* DISABLE ALL COMPLETED TIMES */
                                     const isPastTime00 =
                                       isToday &&
-                                      now >= slotDateTime00 &&
-                                      now < slotDateTime30;
-
-                                    const nextHourDate = new Date(currentDay);
-
-                                    nextHourDate.setHours(hour + 1, 0, 0, 0);
+                                      now > slotDateTime00;
 
                                     const isPastTime30 =
                                       isToday &&
-                                      now >= slotDateTime30 &&
-                                      now < nextHourDate;
-                                    /* BOOKED SLOTS */
-                                    const bookedSlots = [
-                                      {
-                                        date: "May 12, 2026",
-                                        time: "10:30 am",
-                                      },
-                                      {
-                                        date: "May 12, 2026",
-                                        time: "11:00 am",
-                                      },
-                                    ];
+                                      now > slotDateTime30;
 
                                     /* CURRENT SLOT DATE */
                                     const slotDate =
@@ -1973,6 +1962,8 @@ export default function Landing() {
 
                     <input
                       type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
                       placeholder="Enter full name"
                       className="
                   w-full
@@ -2002,6 +1993,8 @@ export default function Landing() {
 
                     <input
                       type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter email address"
                       className="
                   w-full
@@ -2037,6 +2030,8 @@ export default function Landing() {
 
                       <input
                         type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
                         placeholder="Phone number"
                         className="
                     flex-1
@@ -2144,28 +2139,170 @@ export default function Landing() {
                     whileTap={{
                       scale: 0.98,
                     }}
-                    onClick={() => {
-                      setShowBookingPopup(false);
-                      setOpenCalendar(false);
+                    onClick={async () => {
+
+                      try {
+
+                        if (!name || !email || !phone) {
+                          toast.error("Please fill all fields");
+                          return;
+                        }
+
+                        setLoading(true);
+
+                        /* FORMAT DATE */
+                        /* FORMAT DATE WITHOUT UTC ISSUE */
+                        const localDate =
+                          new Date(selectedBookingDate);
+
+                        const year =
+                          localDate.getFullYear();
+
+                        const month =
+                          String(
+                            localDate.getMonth() + 1
+                          ).padStart(2, "0");
+
+                        const day =
+                          String(
+                            localDate.getDate()
+                          ).padStart(2, "0");
+
+                        const formattedDate =
+                          `${year}-${month}-${day}`;
+                        /* FORMAT TIME */
+                        const time24 = (() => {
+
+                          const [time, modifier] =
+                            selectedTime.split(" ");
+
+                          let [hours, minutes] =
+                            time.split(":");
+
+                          if (
+                            modifier.toLowerCase() === "pm" &&
+                            hours !== "12"
+                          ) {
+                            hours =
+                              parseInt(hours, 10) + 12;
+                          }
+
+                          if (
+                            modifier.toLowerCase() === "am" &&
+                            hours === "12"
+                          ) {
+                            hours = "00";
+                          }
+
+                          return `${hours}:${minutes}`;
+
+                        })();
+
+                        /* API CALL */
+                        const response = await fetch(
+                          "http://localhost:8000/demo/schedule",
+                          {
+                            method: "POST",
+
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+
+                            body: JSON.stringify({
+                              name,
+                              email,
+                              phone: phone,
+                              guest_email: showGuests
+                                ? guestEmail
+                                : null,
+                              demo_date: formattedDate,
+                              time_slot: time24,
+                            }),
+                          }
+                        );
+
+                        const data =
+                          await response.json();
+
+                        if (!response.ok) {
+                          toast.error(
+                            data.message ||
+                            "Failed to schedule meeting"
+                          );
+                          return;
+                        }
+
+                        toast.success(
+                          "Demo scheduled successfully!"
+                        );
+
+                        /* CLOSE POPUPS */
+                        setShowBookingPopup(false);
+                        setOpenCalendar(false);
+
+                        /* BLOCK SLOT */
+                        setBookedSlots((prev) => [
+                          ...prev,
+                          {
+                            date:
+                              new Date(selectedBookingDate)
+                                .toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "long",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                ),
+
+                            time:
+                              selectedTime.toLowerCase(),
+                          },
+                        ]);
+
+                        /* OPEN ZOOM */
+                        if (data.zoom_join_url) {
+                          window.open(
+                            data.zoom_join_url,
+                            "_blank"
+                          );
+                        }
+
+                      } catch (error) {
+
+                        console.error(error);
+
+                        toast.error(
+                          "Something went wrong"
+                        );
+
+                      } finally {
+
+                        setLoading(false);
+                      }
                     }}
+                    disabled={loading}
                     className="
-                w-full
-                h-11
-                rounded-full
-                bg-[var(--coral)]
-                hover:bg-[#ff5a2f]
-                text-white
-                text-[12px]
-                font-bold
-                tracking-wide
-                uppercase
-                transition-all
-                cursor-pointer
-                mt-5
-                shadow-[0_10px_30px_rgba(255,69,0,0.25)]
-              "
+    w-full
+    h-11
+    rounded-full
+    bg-[var(--coral)]
+    hover:bg-[#ff5a2f]
+    text-white
+    text-[12px]
+    font-bold
+    tracking-wide
+    uppercase
+    transition-all
+    cursor-pointer
+    mt-5
+    shadow-[0_10px_30px_rgba(255,69,0,0.25)]
+    disabled:opacity-60
+  "
                   >
-                    Schedule Meeting
+                    {loading
+                      ? "Scheduling..."
+                      : "Schedule Meeting"}
                   </motion.button>
 
                 </div>
