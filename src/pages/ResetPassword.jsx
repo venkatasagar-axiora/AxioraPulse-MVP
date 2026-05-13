@@ -28,13 +28,25 @@ export default function ResetPassword() {
     if (!email) return toast.error('Enter your email');
     setBusy(true);
     try {
-      await API.post('/auth/reset-password-request', { email });
+      await API.post(
+        'http://127.0.0.1:8000/auth/reset-password-request',
+        { email }
+      );
       setSent(true);
     } catch (e) {
-      toast.error(e.message);
+      const errorMessage =
+        e?.response?.data?.detail ||
+        "Something went wrong";
+      toast.error(errorMessage);
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleLoginRedirect = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    nav('/login');
   };
 
   return (
@@ -94,7 +106,7 @@ export default function ResetPassword() {
 
             <p style={{ fontFamily: 'Fraunces, serif', fontWeight: 300, fontSize: 14, color: 'rgba(22,15,8,0.4)', marginTop: 36, textAlign: 'center' }}>
               Remember it?{' '}
-              <Link to="/login" style={{ color: 'var(--espresso)', fontWeight: 500, textDecoration: 'none', borderBottom: '1px solid rgba(22,15,8,0.2)', paddingBottom: 1 }}
+              <Link to="/login" onClick={handleLoginRedirect} style={{ color: 'var(--espresso)', fontWeight: 500, textDecoration: 'none', borderBottom: '1px solid rgba(22,15,8,0.2)', paddingBottom: 1 }}
                 onMouseEnter={e => { e.currentTarget.style.color = 'var(--coral)'; e.currentTarget.style.borderBottomColor = 'var(--coral)'; }}
                 onMouseLeave={e => { e.currentTarget.style.color = 'var(--espresso)'; e.currentTarget.style.borderBottomColor = 'rgba(22,15,8,0.2)'; }}>
                 Sign in →

@@ -53,22 +53,11 @@ export default function Register() {
         tenant_slug: f.tenantSlug,
       });
 
-      // 👇 depends on your backend response
-      // if (res.access_token) {
-      //   localStorage.setItem("token", res.access_token);
-      //   // Hydrate store
-      //   await initialize(true);
-      //   toast.success("Account created successfully!");
-      //   nav("/dashboard");
       toast.success(
         "Verification email sent. Please check your inbox."
       );
 
       nav("/login");
-      // } else {
-      //   toast.success("Registered! Please login.");
-      //   nav("/login");
-      // }
 
     } catch (err) {
       console.log("FULL ERROR:", err.response?.data);
